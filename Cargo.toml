@@ -1,0 +1,9 @@
+[package]
+name = "RustableDroneLib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "0.8.5"
+crossbeam-channel = "0.5"
+wg_2024 = { git = "https://github.com/WGL-2024/WGL_repo_2024.git", features = ["serialize"] }
