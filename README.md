@@ -4,6 +4,21 @@ A `RustableDrone` contains two main features:
 `DroneSettings` and `PacketFilter`.  
 and a bunch of `RustableCommand`s to manage them.  
 
+## Behavior
+
+The drone panics when:
+- the index in the `routing_header` is invalid ( < 1 or > len )
+- An error occurs and while trying to send a NACK back to the reversed route, the channel to the next node does not exist
+  - eg: drone 3 drops a packet with route 1 -> 2 -> 3 -> 4, but a channel to 2 does not exist.
+- An error is returned by the `send` method of a `Sender<>`
+- Calling the `new` method and the pdr value is invalid ( < 0.0 or > 1.0 )
+
+The drone does NOT panic when:
+- A `DroneCommand` fails
+  - if the setting `log_to_stdout` is set to true, prints to stderr a message
+  - eg: `DroneCommand::RemoveSender()` but the specified `NodeId` is not an adjecent node  
+
+Note: these behaviors might be subject to change in the future.
 
 ## DroneSettings
 
@@ -30,8 +45,6 @@ The fields are the following:
 - `quack: bool`
   - the drone becomes a duck and quacks every `MsgFragment`
   - default value: **false**
-
-
 
 
 ## PacketFilter
