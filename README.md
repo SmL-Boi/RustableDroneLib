@@ -4,7 +4,7 @@ A `RustableDrone` contains two main features:
 `DroneSettings` and `PacketFilter`.  
 and a bunch of `RustableCommand`s to manage them.  
 
-Dependency:
+Dependency:  
 `rustable-drone = { git = "https://github.com/SmL-Boi/RustableDroneLib.git"}`
 
 ## Behavior
