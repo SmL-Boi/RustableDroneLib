@@ -94,7 +94,7 @@ impl RustableDrone {
         if packet.routing_header.hop_index < 1 && !matches!(&packet.pack_type, PacketType::FloodRequest(x)) {
             panic!("Indexing Error in RustableDrone {} receiving a Packet from node {}. hop_index is less than 1 in packet's header:\n{:?}", self.id, packet.routing_header.previous_hop().unwrap(), packet.routing_header);
         }
-        if packet.routing_header.hop_index > packet.routing_header.hops.len() {
+        if packet.routing_header.hop_index > packet.routing_header.hops.len() && !matches!(&packet.pack_type, PacketType::FloodRequest(x)) {
             panic!("Indexing Error in RustableDrone {} receiving a Packet from node {}. hop_index is bigger than hops len in packet's header:\n{:?}", self.id, packet.routing_header.previous_hop().unwrap(), packet);
         }
 
