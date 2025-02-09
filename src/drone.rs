@@ -640,8 +640,10 @@ impl RustableDrone {
             thread::sleep(self.settings.sleep_duration);
         }
 
-        let mut rev_header = nacked_packet.routing_header.get_reversed();
-        rev_header.hop_index += 1;
+        let mut rev_header = nacked_packet.routing_header.clone();
+        rev_header.hops.truncate(rev_header.hop_index + 1);
+        rev_header.hops.reverse();
+        rev_header.hop_index = 1;
 
         let res: Result<(), SendError<Packet>> = self.packet_send.get(&from).unwrap().send(
             Packet {
