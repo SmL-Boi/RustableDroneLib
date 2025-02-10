@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::mem::uninitialized;
 use std::thread;
 use crossbeam_channel::{select_biased, Receiver, RecvError, SendError, Sender};
 use rand::{thread_rng, Rng};
@@ -24,7 +25,7 @@ pub struct RustableDrone {
     drop_rate: f32,
     pub settings: DroneSettings,
     pub filter: PacketFilter,
-    flood_ids: Vec<u64>,
+    flood_ids: HashMap<NodeId, Vec<u64>>,
     has_to_crash: bool
 }
 
@@ -50,7 +51,7 @@ impl Drone for RustableDrone {
             drop_rate: pdr,
             settings: DroneSettings::default(),
             filter: PacketFilter::default(),
-            flood_ids: vec![],
+            flood_ids: HashMap::new(),
             has_to_crash: false
         }
     }
@@ -358,9 +359,15 @@ impl RustableDrone {
         let from: NodeId = request.path_trace[request.path_trace.len() - 1 ].0;
 
         request.path_trace.push((self.id, Drone));
-        if self.flood_ids.contains(&request.flood_id) { //already visited
-            //send back a FloodResponse
 
+        //adds flood initiator if not present
+        if !self.flood_ids.contains_key(&request.initiator_id) {
+            self.flood_ids.insert(request.initiator_id, vec![]);
+        }
+
+        //check if flood ID has already been sent by this initiator
+        if self.flood_ids.get(&request.initiator_id).unwrap().contains(&request.flood_id) {
+            //send back a FloodResponse
             let mut rev_route: Vec<NodeId> = vec![];
             for i in (0..request.path_trace.len()).rev() {
                 rev_route.push(request.path_trace[i].0);
@@ -390,11 +397,13 @@ impl RustableDrone {
             if self.settings.log_to_stdout {
                 println!("RustableDrone {} sent a FloodResponse to node {} because it was already visited", self.id, from);
             }
-
         } else {
-            if self.packet_send.len() == 1 { //no neighbors
-                //send back a Floodresponse
+            //adds flood ID to this initiator
+            self.flood_ids.get(&request.initiator_id).unwrap().push(request.flood_id);
 
+            //if drone has no neighbors
+            if self.packet_send.len() == 1 {
+                //sends back a FloodResponse
                 let mut rev_route: Vec<NodeId> = vec![];
                 for i in (0..request.path_trace.len()).rev() {
                     rev_route.push(request.path_trace[i].0);
@@ -424,18 +433,14 @@ impl RustableDrone {
                 if self.settings.log_to_stdout {
                     println!("RustableDrone {} sent a FloodResponse to node {} because it has no neighbors", self.id, from);
                 }
-
-            }else{ //all good forward floosrequest
-                self.flood_ids.push(request.flood_id);
-
+            } else { //forward FloodRequest
                 //sleeps
                 if !self.settings.sleep_duration.is_zero() {
                     thread::sleep(self.settings.sleep_duration);
                 }
 
-                //iterare i vicni e mandare la richiesta a tutti tranne che a quello da cui l'hai ricevuta
+                //propagate request to all neighbors except the sender
                 for (key, value) in self.packet_send.iter().filter(|(k, _)| **k != from) {
-
                     let res: Result<(), SendError<Packet>> = self.packet_send.get(&key).unwrap().send(
                         Packet{
                             routing_header: Default::default(),
@@ -452,14 +457,9 @@ impl RustableDrone {
                     if self.settings.log_to_stdout {
                         println!("RustableDrone {} received a FloodRequest from node {} and forwarded it to node {}", self.id, from, key);
                     }
-
                 }
-
             }
-
-
         }
-
     }
 
     fn flood_res_handler(&mut self, packet: &Packet) {
