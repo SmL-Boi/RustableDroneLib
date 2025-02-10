@@ -399,7 +399,7 @@ impl RustableDrone {
             }
         } else {
             //adds flood ID to this initiator
-            self.flood_ids.get(&request.initiator_id).unwrap().push(request.flood_id);
+            self.flood_ids.get_mut(&request.initiator_id).unwrap().push(request.flood_id);
 
             //if drone has no neighbors
             if self.packet_send.len() == 1 {
